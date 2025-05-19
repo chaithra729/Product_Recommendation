@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Page</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .nav-link:hover {
+            color: orange !important;
+        }
+        .nav-link.btn {
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand mx-auto" href="#">Ecommerce Recommendation System</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav">
+            <li class="nav-item active">
+                <a class="nav-link" href="{{ url_for('index') }}"><i class="fas fa-home"></i> Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="settingsLink"><i class="fas fa-cog"></i> Settings</a>
+            </li>
+            {% if session['username'] %}
+            <li class="nav-item" id="logoutNav">
+                <a class="nav-link btn btn-danger" href="{{ url_for('logout') }}">Logout</a>
+            </li>
+            {% else %}
+            <li class="nav-item" id="signupNav">
+                <a class="nav-link btn btn-outline-primary mr-2" href="#" data-toggle="modal" data-target="#signupModal">Sign Up</a>
+            </li>
+            <li class="nav-item" id="signinNav">
+                <a class="nav-link btn btn-primary" href="#" data-toggle="modal" data-target="#signinModal">Sign In</a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <form action="{{ url_for('recommendations') }}" method="post" style="display:flex;">
+        <input type="text" class="form-control mr-2" name="prod" placeholder="Search for products..." required>
+        <input type="number" class="form-control mr-2" name="nbr" placeholder="Number..." min="1" style="width:100px;" required>
+        <button class="btn btn-primary">Search</button>
+    </form>
+</div>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="container mt-3">
+            {% for message in messages %}
+                <div class="alert alert-info">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+{% if message %}
+<h5 class="text-center mt-3 text-info">{{ message }}</h5>
+{% endif %}
+{% if content_based_rec is defined and not content_based_rec.empty %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Based on Your Search</h2>
+    <div class="row mt-4">
+        {% for index, product in content_based_rec.iterrows() %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product['Name'] }}</h5>
+                    <p class="card-text">Brand: {{ product['Brand'] }}</p>
+                    <p><strong>Review Count:</strong> {{ product['ReviewCount'] }}</p>
+                    <p><strong>Rating:</strong> {{ product['Rating'] }}</p>
+                    <form method="POST" action="{{ url_for('add_to_cart') }}">
+                        <input type="hidden" name="product_name" value="{{ product['Name'] }}">
+                        <button type="submit" class="btn btn-warning btn-sm">Add to Cart</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('buy_product') }}" class="mt-2">
+                        <input type="hidden" name="product_name" value="{{ product['Name'] }}">
+                        <button type="submit" class="btn btn-success btn-sm">Buy Now</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% if collaborative_rec is defined and not collaborative_rec.empty %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Recommended for You</h2>
+    <div class="row mt-4">
+        {% for index, product in collaborative_rec.iterrows() %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product['Name'] }}</h5>
+                    <p class="card-text">Brand: {{ product['Brand'] }}</p>
+                    <p><strong>Review Count:</strong> {{ product['ReviewCount'] }}</p>
+                    <p><strong>Rating:</strong> {{ product['Rating'] }}</p>
+                    <form method="POST" action="{{ url_for('add_to_cart') }}">
+                        <input type="hidden" name="product_name" value="{{ product['Name'] }}">
+                        <button type="submit" class="btn btn-warning btn-sm">Add to Cart</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('buy_product') }}" class="mt-2">
+                        <input type="hidden" name="product_name" value="{{ product['Name'] }}">
+                        <button type="submit" class="btn btn-success btn-sm">Buy Now</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% elif trending_fallback is defined and not trending_fallback.empty and message %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Trending Products</h2>
+    <div class="row mt-4">
+        {% for index, product in trending_fallback.iterrows() %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product['Name'] }}</h5>
+                    <p class="card-text">Brand: {{ product['Brand'] }}</p>
+                    <p><strong>Review Count:</strong> {{ product['ReviewCount'] }}</p>
+                    <p><strong>Rating:</strong> {{ product['Rating'] }}</p>
+                    <p><strong>Price:</strong> {{ prices[loop.index] if prices else 'N/A' }}</p>
+                    <form method="POST" action="{{ url_for('add_to_cart') }}">
+                        <input type="hidden" name="product_name" value="{{ product['Name'] }}">
+                        <button type="submit" class="btn btn-warning btn-sm">Add to Cart</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('buy_product') }}" class="mt-2">
+                        <input type="hidden" name="product_name" value="{{ product['Name'] }}">
+                        <button type="submit" class="btn btn-success btn-sm">Buy Now</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
